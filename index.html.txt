@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>妖怪ウォッチ2 謎の立て札クイズ</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #2c3e50;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .panel-box {
+            background: #FFF8DC;
+            border: 4px solid #8b4513;
+            border-radius: 12px;
+            padding: 25px 20px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .panel-box h2 {
+            color: #8b4513;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .panel-box p {
+            font-size: 16px;
+            margin: 10px 0;
+            color: #2c3e50;
+            line-height: 1.5;
+        }
+
+        .game-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: #fff;
+            font-weight: bold;
+            padding: 0 5px;
+        }
+
+        .timer-box {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 16px;
+        }
+
+        .tatefuda-wrapper {
+            position: relative;
+            width: 100%;
+            background: linear-gradient(135deg, #b8622f, #8b4513);
+            border: 8px solid #5c2c16;
+            border-radius: 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        .tatefuda-title {
+            font-size: clamp(18px, 4.5vw, 22px);
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 0px #000;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .tatefuda-title span {
+            color: #00ffff;
+        }
+
+        .name-boxes-container {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .name-box {
+            width: 28px;
+            height: 32px;
+            background: #fff8dc;
+            border: 2px solid #5c2c16;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: #8b4513;
+        }
+
+        .clues-box {
+            background-color: #FFF8DC;
+            border: 2px solid #d4c39c;
+            border-radius: 4px;
+            padding: 12px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .clue-item {
+            font-size: clamp(13px, 3.2vw, 16px);
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .result-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 4px;
+        }
+
+        .result-overlay.active {
+            display: flex;
+        }
+
+        .result-stamp {
+            font-size: 50px;
+            font-weight: bold;
+            text-shadow: 3px 3px 0px #000;
+        }
+
+        .result-stamp.correct { color: #2ECC71; }
+        .result-stamp.incorrect { color: #E74C3C; }
+        .result-stamp.timeout { color: #F39C12; }
+
+        .result-answer-text {
+            color: #fff;
+            font-size: 20px;
+            margin-top: 15px;
+            text-shadow: 2px 2px 0px #000;
+            text-align: center;
+            padding: 0 10px;
+        }
+
+        .control-area {
+            width: 100%;
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px;
+            font-size: 16px;
+            border: 3px solid #8b4513;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .btn-submit { background-color: #e67e22; color: white; }
+        .btn-giveup { background-color: #7f8c8d; color: white; width: 100%; }
+        .btn-primary { background-color: #27ae60; color: white; width: 100%; margin-top: 15px; font-size: 18px; padding: 14px; }
+
+        .rank-display {
+            font-size: 26px;
+            font-weight: bold;
+            color: #d35400;
+            margin: 15px 0;
+        }
+
+        .missed-list {
+            text-align: left;
+            max-height: 120px;
+            overflow-y: auto;
+            background: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+
+    <!-- スタート画面 -->
+    <div id="start-screen" class="screen active">
+        <div class="panel-box">
+            <h2>妖怪ウォッチ2<br>謎の立て札クイズ（5問勝負）</h2>
+            <p>『妖怪ウォッチ2（元祖／本家／真打）』に登場する妖怪たちを厳選！<br>全問正解してSランクを目指そう！<br>Sランクを3回取ると「レジェンド妖怪」に！</p>
+            <p id="s-count-info" style="font-weight: bold; color: #27ae60; margin-top: 5px;">現在のSランク達成回数: 0回</p>
+            <button class="btn-primary" onclick="startGame()">ゲームスタート</button>
+        </div>
+    </div>
+
+    <!-- ゲームプレイ画面 -->
+    <div id="quiz-screen" class="screen">
+        <div class="game-header">
+            <span id="question-progress">第 1 問 / 5問中</span>
+            <div class="timer-box" id="timer-display">残り 30秒</div>
+        </div>
+
+        <div class="tatefuda-wrapper" id="tatefuda">
+            <div class="tatefuda-title"><span>Q</span> この妖怪 だ〜れだ？</div>
+            
+            <div class="name-boxes-container" id="name-boxes"></div>
+
+            <div class="clues-box">
+                <div class="clue-item" id="clue-1">〜 特徴1</div>
+                <div class="clue-item" id="clue-2">〜 特徴2</div>
+                <div class="clue-item" id="clue-3">〜 特徴3</div>
+            </div>
+
+            <div id="result-overlay" class="result-overlay">
+                <div id="result-stamp" class="result-stamp">正解！</div>
+                <div id="result-answer-display" class="result-answer-text"></div>
+            </div>
+        </div>
+
+        <div class="control-area">
+            <div class="input-group">
+                <input type="text" id="answer-input" placeholder="妖怪の名前をひらがなで入力" autocomplete="off">
+                <button class="btn-submit" onclick="submitAnswer()">回答する</button>
+            </div>
+            <button class="btn-giveup" onclick="showAnswer()">答えを見る</button>
+        </div>
+    </div>
+
+    <!-- 結果画面（5問終了時） -->
+    <div id="result-screen" class="screen">
+        <div class="panel-box">
+            <h2>結果発表</h2>
+            <p id="final-stats-correct">正解数: 5 / 5</p>
+            <div class="rank-display" id="final-rank-display">称号: Sランク妖怪</div>
+            <p id="legend-message" style="color: #e74c3c; font-weight: bold; margin: 10px 0;"></p>
+            
+            <p style="font-weight: bold; margin-top: 10px;">今回の振り返り:</p>
+            <div class="missed-list" id="missed-list-container">なし</div>
+
+            <button class="btn-primary" onclick="startGame()">もう一度挑戦する</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 『妖怪ウォッチ2』本編に登場する正式な妖怪データのみを厳選
+    const allQuestionsData = [
+        { name: "じばにゃん", accepted: ["じばにゃん", "ジバニャン"], clues: ["車にひかれて死んだネコの妖怪", "交差点で車にネコパンチをくり出す", "大好きなチョコボーを目をつぶって食べる"] },
+        { name: "コマさん", accepted: ["コマさん", "こまさん"], clues: ["ソフトクリームが大好きなしろい犬の妖怪", "田舎から都会に出てきていつも「もんげー！」と驚く", "お風呂の水やサウナが苦手"] },
+        { name: "ウィスパー", accepted: ["ウィスパー", "うぃすぱー"], clues: ["自称・妖怪執事の白い体をしている", "妖怪パッドをいつも持ち歩いている", "妖怪白まきぐそ"] },
+        { name: "コマじろう", accepted: ["コマじろう", "こまじろう"], clues: ["コマさんの弟で都会にすぐ馴染んだ", "DJの真似や音楽が好き", "リュックサックをいつも背負っている"] },
+        { name: "キュウビ", accepted: ["キュウビ", "きゅうび"], clues: ["美しい九尾のキツネのイケメン妖怪", "人間をメロメロにする妖術を使う", "自分の美しさに絶対的な自信がある"] },
+        { name: "オロチ", accepted: ["オロチ", "おろち"], clues: ["青いマフラーを巻いた竜族の最強妖怪", "強力な龍の気を使った技をあやつる", "実力を認めた相手にしか心を開かない"] },
+        { name: "ツチノコ", accepted: ["ツチノコ", "つちのこ"], clues: ["見つけると幸せになれる幻のヘビ型妖怪", "語尾に「〜のこ」をつけて話す", "お金や幸運を引き寄せる力がある"] },
+        { name: "ロボニャン", accepted: ["ロボニャン", "ろぼにゃん"], clues: ["未来からやってきたネコ型のロボット妖怪", "お腹からチョコボーを無限に出せる", "ボディは頑丈な超合金でできている"] },
+        { name: "のぼせトンマン", accepted: ["のぼせトンマン", "のぼせとんまん"], clues: ["お風呂が大好きででのぼせやすいブタのボス妖怪", "背中に立派な温泉マークがついている", "熱いお湯に入るとパワーアップする"] },
+        { name: "ミツマタノヅチ", accepted: ["ミツマタノヅチ", "みつまたのづち"], clues: ["3つの首を持つ巨大な妖怪", "不気味な瞳で相手を睨みつける", "歴史あるお堂の地下に潜んでいた"] },
+        { name: "から傘お化け", accepted: ["から傘お化け", "からかさおばけ"], clues: ["古くなった傘が妖怪になったもの", "一本足でピョンピョンと飛びまわる", "人をびっくりさせるのが大好き"] },
+        { name: "人面犬", accepted: ["人面犬", "じんめんけん"], clues: ["人間の顔をした哀愁ただよう犬", "サラリーマンのような愚痴をこぼす", "おでんの屋台やガード下にいることが多い"] },
+        { name: "メラメライオン", accepted: ["メラメライオン", "めらめらいおん"], clues: ["やる気に満ちあふれたライオンの妖怪", "とりつかれるとなんでも燃えるような情熱で行う", "たてがみが燃えさかっている"] },
+        { name: "グレるりん", accepted: ["グレるりん", "ぐれるりん"], clues: ["リーゼントヘアが特徴的なグレた妖怪", "とりつかれるとたちまち不良っぽくなってしまう", "本当はさみしがり屋で心優しい一面もある"] },
+        { name: "ネガティブーン", accepted: ["ネガティブーン", "ねがてぃぶーん"], clues: ["まわりの空気をすべてネガティブにしてしまう", "虫のブーンという羽音に似ている", "どんなことでも悪いほうへ考えてしまう"] },
+        { name: "ホノボーノ", accepted: ["ホノボーノ", "ほのぼーの"], clues: ["見ているだけで心がほのぼのしてくる妖怪", "まわりの雰囲気を一気にやわらかくする", "いつも笑顔でリラックスしている"] },
+        { name: "ドンヨリーヌ", accepted: ["ドンヨリーヌ", "どんよりーぬ"], clues: ["部屋の隅っこにジッとしている主婦風の妖怪", "まわりにどんよりとした暗い空気をただよわせる", "ホノボーノとは夫婦のような関係"] },
+        { name: "バクロ婆", accepted: ["バクロ婆", "ばくろばあ"], clues: ["おしゃべり好きなおばあちゃんの妖怪", "とりつかれると秘密や恥ずかしいことをつい喋ってしまう", "バクバクと口を大きく開ける"] },
+        { name: "ノガッパ", accepted: ["ノガッパ", "のがっぱ"], clues: ["河童の見た目をした水色の妖怪", "何でも「のがす」得意技を持っている", "川や水辺の近くを散歩するのが好き"] },
+        { name: "トゲニャン", accepted: ["トゲニャン", "とげにゃん"], clues: ["体がトゲトゲしたサボテン風のネコ妖怪", "怒るとトゲを飛ばして攻撃する", "じばにゃんの亜種のような姿をしている"] },
+        { name: "ワルニャン", accepted: ["ワルニャン", "わるにゃん"], clues: ["サングラスをかけたワイルドなネコ妖怪", "不良ぶっているが根は優しい", "魚の骨をくわえて街を歩く"] },
+        { name: "ブリー隊長", accepted: ["ブリー隊長", "ぶりーたいちょう"], clues: ["ミリタリー風の服装をしたトレーニングの鬼", "「ビリーズ・ブートキャンプ」風の特訓をする", "健康的な体づくりを熱血指導する"] },
+        { name: "ヒキコウモリ", accepted: ["ヒキコウモリ", "ひきこうもり"], clues: ["家から一歩も出ないコウモリの妖怪", "ネットやゲームの世界に引きこもっている", "外に出るほどのエネルギーを全く使わない"] },
+        { name: "セミまる", accepted: ["セミまる", "せみまる"], clues: ["夏の終わりのせつなさを背負ったセミの妖怪", "ジリジリと大きな声で鳴き続ける", "短い命を精一杯生きている"] },
+        { name: "カジキマグロ", accepted: ["カジキマグロ", "かじきまぐろ"], clues: ["鋭いツノを持った海のスピード王者", "海だけでなく空をも飛ぶ勢いで突進する", "お寿司のネタとしても非常に有名"] },
+        { name: "モテマクール", accepted: ["モテマクール", "もてまくーる"], clues: ["どんな女性も一撃で虜にするイケメン妖怪", "スタイリッシュなポーズをいつも決めている", "モテすぎて本人は少し悩んでいるらしい"] },
+        { name: "イケメン犬", accepted: ["イケメン犬", "いけめんけん"], clues: ["人間のような顔立ちをした気品あふれる犬", "その美貌で周囲の視線を独り占めする", "元は人間だったという噂もある"] },
+        { name: "ネタバレリーナ", accepted: ["ネタバレリーナ", "ねたばれりーな"], clues: ["映画や小説の結末をうっかり喋ってしまう妖怪", "お上品な見た目だが破壊力が抜群", "サプライズを台無しにする天才"] },
+        { name: "やまタン", accepted: ["やまタン", "やまたん"], clues: ["伝説の山を守る神聖な大蛇の妖怪", "計り知れないほどの巨大な魔力を秘めている", "選ばれし者しかその姿を見ることができない"] },
+        { name: "しゅらコマ", accepted: ["しゅらコマ", "しゅらこま"], clues: ["炎をまとい戦場を駆け抜ける武者姿のコマさん", "普段のほんわかした面影が全くない", "鬼神の如き強さを誇るレジェンド妖怪"] },
+        { name: "花さか爺", accepted: ["花さか爺", "はなさかじい"], clues: ["枯れ木に花を咲かせる心優しいおじいちゃん", "ハッピーな奇跡を起こす力を持っている", "みんなに笑顔と幸せを届けてくれる"] },
+        { name: "イザナミ", accepted: ["イザナミ", "いざなみ"], clues: ["神秘的なオーラをまとう女神のような妖怪", "美しい炎で悪しき魂を浄化する", "神話の世界からやってきたような気高さがある"] },
+        { name: "あまのじゃく", accepted: ["あまのじゃく", "天邪鬼"], clues: ["人の言うことと反対のことばかり言いたがる", "ひねくれた性格をしているが実は恥ずかしがり屋", "素直になれない典型的なひねくれ者"] },
+        { name: "座敷童子", accepted: ["座敷童子", "ざしきわらし"], clues: ["家に福や幸運をもたらしてくれる子ども妖怪", "いるだけでその家がパッと明るくなる", "いたずらが好きだが悪気は一切ない"] },
+        { name: "なまはげ", accepted: ["なまはげ", "ナマハゲ"], clues: ["包丁と桶を持った恐ろしい形相の鬼妖怪", "「悪い子はいねがー！」と家を巡回する", "実はしつけに厳しいだけの良き存在"] },
+        { name: "モレゾウ", accepted: ["モレゾウ", "もれぞう"], clues: ["象の見た目をしていて、色々と「もれちゃう」妖怪", "とりつかれると急にトイレに行きたくなる", "見た目によらず動きがせわしない"] },
+        { name: "ドキ土器", accepted: ["ドキ土器", "どきどき"], clues: ["古代の土器の形をした胸が騒ぐ妖怪", "とりつかれると心臓がバクバク高鳴る", "恋をしている時のような緊張感を与える"] },
+        { name: "おもいだ神", accepted: ["おもいだ神", "おもいだしん"], clues: ["忘れていた大切な記憶を次々によみがえらせる", "頭の上に大きな光る電球が浮かんでいる", "昔の思い出に浸らせるのが得意"] }
+    ];
+
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let sessionLog = [];
+    let timerInterval = null;
+    let timeLeft = 30;
+
+    function getSCount() {
+        return parseInt(localStorage.getItem('yokai2_s_count') || '0');
+    }
+
+    function addSCount() {
+        let count = getSCount() + 1;
+        localStorage.setItem('yokai2_s_count', count);
+        return count;
+    }
+
+    function updateStartScreen() {
+        document.getElementById('s-count-info').innerText = `現在のSランク達成回数: ${getSCount()}回`;
+    }
+    updateStartScreen();
+
+    function startGame() {
+        let shuffled = [...allQuestionsData].sort(() => 0.5 - Math.random());
+        currentQuestions = shuffled.slice(0, 5);
+        currentIndex = 0;
+        correctCount = 0;
+        sessionLog = [];
+
+        switchScreen('quiz-screen');
+        loadQuestion();
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function loadQuestion() {
+        if (currentIndex >= currentQuestions.length) {
+            showResult();
+            return;
+        }
+
+        const q = currentQuestions[currentIndex];
+        document.getElementById('question-progress').innerText = `第 ${currentIndex + 1} 問 / 5問中`;
+        
+        const nameBoxesContainer = document.getElementById('name-boxes');
+        nameBoxesContainer.innerHTML = '';
+        const cleanName = q.name.replace(/[^ぁ-んァ-ンー]/g, '');
+        for (let i = 0; i < cleanName.length; i++) {
+            const box = document.createElement('div');
+            box.className = 'name-box';
+            nameBoxesContainer.appendChild(box);
+        }
+
+        document.getElementById('clue-1').innerText = "〜 " + q.clues[0];
+        document.getElementById('clue-2').innerText = "〜 " + q.clues[1];
+        document.getElementById('clue-3').innerText = "〜 " + q.clues[2];
+
+        const input = document.getElementById('answer-input');
+        input.value = '';
+        input.disabled = false;
+        document.querySelector('.btn-submit').disabled = false;
+        document.querySelector('.btn-giveup').disabled = false;
+        document.getElementById('result-overlay').classList.remove('active');
+
+        startTimer();
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeLeft = 30;
+        updateTimerDisplay();
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                handleTimeOut();
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        document.getElementById('timer-display').innerText = `残り ${timeLeft}秒`;
+    }
+
+    function submitAnswer() {
+        const input = document.getElementById('answer-input');
+        const userVal = input.value.trim().toLowerCase();
+        if (!userVal || timeLeft <= 0) return;
+
+        const q = currentQuestions[currentIndex];
+        const isCorrect = q.accepted.map(a => a.toLowerCase()).includes(userVal);
+
+        if (isCorrect) {
+            clearInterval(timerInterval);
+            correctCount++;
+            sessionLog.push({ qNum: currentIndex + 1, name: q.name, status: '正解' });
+
+            const boxes = document.querySelectorAll('.name-box');
+            const cleanName = q.name.replace(/[^ぁ-んァ-ンー]/g, '');
+            for (let i = 0; i < boxes.length && i < cleanName.length; i++) {
+                boxes[i].innerText = cleanName[i];
+            }
+
+            showResultOverlay('correct', '正解！', `正解は、${q.name}！`);
+            setTimeout(proceedToNext, 2000);
+        } else {
+            showResultOverlay('incorrect', '不正解！', 'もう一度入力してね！');
+            setTimeout(() => {
+                document.getElementById('result-overlay').classList.remove('active');
+            }, 1000);
+        }
+    }
+
+    document.getElementById('answer-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') submitAnswer();
+    });
+
+    function showAnswer() {
+        clearInterval(timerInterval);
+        const q = currentQuestions[currentIndex];
+        sessionLog.push({ qNum: currentIndex + 1, name: q.name, status: '答えを見た(不正解扱い)' });
+
+        const boxes = document.querySelectorAll('.name-box');
+        const cleanName = q.name.replace(/[^ぁ-んァ-ンー]/g, '');
+        for (let i = 0; i < boxes.length && i < cleanName.length; i++) {
+            boxes[i].innerText = cleanName[i];
+        }
+
+        disableControls();
+        showResultOverlay('timeout', '答えを見る', `正解は、${q.name}`);
+        setTimeout(proceedToNext, 2500);
+    }
+
+    function handleTimeOut() {
+        disableControls();
+        const q = currentQuestions[currentIndex];
+        sessionLog.push({ qNum: currentIndex + 1, name: q.name, status: '時間切れ(不正解扱い)' });
+
+        const boxes = document.querySelectorAll('.name-box');
+        const cleanName = q.name.replace(/[^ぁ-んァ-ンー]/g, '');
+        for (let i = 0; i < boxes.length && i < cleanName.length; i++) {
+            boxes[i].innerText = cleanName[i];
+        }
+
+        showResultOverlay('timeout', '時間切れ！', `正解は、${q.name}`);
+        setTimeout(proceedToNext, 2500);
+    }
+
+    function disableControls() {
+        document.getElementById('answer-input').disabled = true;
+        document.querySelector('.btn-submit').disabled = true;
+        document.querySelector('.btn-giveup').disabled = true;
+    }
+
+    function showResultOverlay(type, title, message) {
+        const overlay = document.getElementById('result-overlay');
+        const stamp = document.getElementById('result-stamp');
+        const answerDisplay = document.getElementById('result-answer-display');
+
+        stamp.className = `result-stamp ${type}`;
+        stamp.innerText = title;
+        answerDisplay.innerText = message;
+        overlay.classList.add('active');
+    }
+
+    function proceedToNext() {
+        currentIndex++;
+        loadQuestion();
+    }
+
+    function showResult() {
+        clearInterval(timerInterval);
+        document.getElementById('final-stats-correct').innerText = `正解数: ${correctCount} / 5`;
+
+        let rank = "Eランク妖怪";
+        if (correctCount === 5) rank = "Sランク妖怪";
+        else if (correctCount === 4) rank = "Aランク妖怪";
+        else if (correctCount === 3) rank = "Bランク妖怪";
+        else if (correctCount === 2) rank = "Cランク妖怪";
+        else if (correctCount === 1) rank = "Dランク妖怪";
+        else if (correctCount === 0) rank = "Eランク妖怪";
+
+        let rankDisplayStr = `称号: ${rank}`;
+        let legendMsg = "";
+
+        if (correctCount === 5) {
+            let sTotal = addSCount();
+            if (sTotal >= 3) {
+                rankDisplayStr = `称号: 🎉 レジェンド妖怪 🎉`;
+                legendMsg = `【速報】Sランクを3回達成したため、最高峰の「レジェンド妖怪」の称号を手に入れました！おめでとうございます！`;
+            } else {
+                legendMsg = `Sランク達成！あと ${3 - sTotal} 回Sランクを取ると「レジェンド妖怪」に進化します！`;
+            }
+        }
+
+        document.getElementById('final-rank-display').innerText = rankDisplayStr;
+        document.getElementById('legend-message').innerText = legendMsg;
+
+        const missedContainer = document.getElementById('missed-list-container');
+        missedContainer.innerHTML = sessionLog.map(m => `第${m.qNum}問: ${m.name} [${m.status}]`).join('<br>');
+
+        updateStartScreen();
+        switchScreen('result-screen');
+    }
+</script>
+
+</body>
+</html>
